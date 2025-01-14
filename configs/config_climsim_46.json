@@ -1,0 +1,66 @@
+{
+    "exp_description": "New codebase. Clusters 38 vs 37/39. MLP model.",
+    "seeds": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    "num_source_points_list": [100, 500, 1000, 2000, 3000],
+    "climsim_config": {
+        "data_mode": "cluster_4",
+        "targets": [38],
+        "sources": [37, 39],
+        "data_frequency": "daily",
+        "data_type": "rain",
+        "num_target_normal_training": 4000,
+        "num_target_normal_test": 5000,
+        "num_target_abnormal_training": 60,
+        "num_target_abnormal_test": 1882,
+        "num_source_abnormal": 3000,
+        "input_dim": 124
+    },
+    "model_config": {
+        "model_name": "MultiLayerPerceptron",
+        "input_dim": 124
+    },
+    "training_config": {
+        "device": "cpu",
+        "alpha": 0.025,
+        "normalize_losses": true,
+        "num_epochs": 600,
+        "batch_size": 512,
+        "lambda_source_list": [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100],
+        "method1_constant": 2.5,
+        "method2_constant": 7.5,
+        "data_standardization": false,
+        "early_stopping_patience": 30,
+        "early_stopping_min_delta": 0.001,
+        "max_grad_norm": 3.0,
+        "loss_function": "ExponentialLoss"
+    },
+    "optimizer_config": {
+        "optimizer_name": "Adam",
+        "learning_rate": 0.001,
+        "SGD": {
+            "momentum": 0
+        },
+        "Adam": {
+            "betas": [0.9, 0.999]
+        },
+        "RMSprop": {
+            "alpha": 0.99
+        }
+    },
+    "scheduler_config": {
+        "scheduler_name": "ReduceLROnPlateau",
+        "StepLR": {
+            "step_size": 10,
+            "gamma": 0.5
+        },
+        "ReduceLROnPlateau": {
+            "factor": 0.25, 
+            "patience": 5
+        },
+        "ExponentialLR": {
+            "gamma": 0.9
+        }
+    }
+}
+
+
