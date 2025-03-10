@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tlnp"
+version = "0.1.0"
+description = "A framework for transfer learning with a Neyman Pearson approach"
+readme = "README.md"
+authors = [
+    { name = "Eitan J. Neugut", email = "eitan.neugut@columbia.edu" },
+    { name = "Mohammadreza Mousavi Kalan", email = "mohammad.mousavikalan@gmail.com" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+    "numpy==1.26.4",
+    "torch",
+    "matplotlib",
+    "pandas",
+    "scikit-learn",
+    "tabulate",
+    "seaborn",
+]
+
+[project.urls]
+Homepage = "https://github.com/eneugut/transfer-learning-neyman-pearson"
+Repository = "https://github.com/eneugut/transfer-learning-neyman-pearson"
+Issues = "https://github.com/eneugut/transfer-learning-neyman-pearson/issues"
+
+[tool.setuptools]
+packages = ["tlnp"]
+
+[tool.setuptools.package-data]
+tlnp = ["*.json", "*.txt"]
