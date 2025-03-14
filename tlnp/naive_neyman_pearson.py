@@ -1,21 +1,32 @@
 import torch
+import json
+import time
 
 from tlnp.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
 
 class NaiveNeymanPearson(TransferLearningNeymanPearson):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.all_results['approach_name'] = 'nnp'
 
     def run_training_process(self):
-        lambda_source = 1
-        lambda_normal = 1
+        start_time = time.time()
+        lambda_source = 1.0
+        lambda_normal = 1.0
         self.train_one_lambda_pair(lambda_source, lambda_normal)
 
         test_error_dict = self._evaluate_on_test_data((lambda_source, lambda_normal), model_suffix="_nnp")
         self.all_results["test_metrics"] = {
             **test_error_dict,
-            'num_trainings': len([key for key in self.all_results if key.startswith("lambda")])
+            'num_trainings': len(self.all_results['training_results'])
         }
+
+        process_time = time.time() - start_time
+        self.all_results['process_time'] = process_time
+        
+        if self.results_save_path:
+            with open(self.results_save_path + '_nnp.json', 'w') as f:
+                json.dump(self.all_results, f, indent=4)
 
         return self.all_results
 
@@ -32,15 +43,11 @@ class NaiveNeymanPearson(TransferLearningNeymanPearson):
         # Calculate evaluation error rates
         type1_error_rate = self.utils.calculate_type1_error_rate(output_evaluation[self.labels_evaluation == 0])
         type2_error_rate_target = self.utils.calculate_type2_error_rate(output_evaluation[self.labels_evaluation == 1])
-
-        # Calculate variance in target abnormal outputs
-        target_abnormal_output_variance = torch.var(torch.sign(output_evaluation[self.labels_evaluation == 1]).float()).item()
-
         if self.source_exists:
             type2_error_rate_source = self.utils.calculate_type2_error_rate(output_evaluation[self.labels_evaluation == 2])
-            return (type1_error_rate, type2_error_rate_target, type2_error_rate_source), target_abnormal_output_variance
+            return (type1_error_rate, type2_error_rate_target, type2_error_rate_source)
 
-        return (type1_error_rate, type2_error_rate_target), target_abnormal_output_variance
+        return (type1_error_rate, type2_error_rate_target)
 
     def _calculate_optimal_threshold(self, output_evaluation):
         # Calculate the optimal threshold to meet the Type I Error Rate constraints.

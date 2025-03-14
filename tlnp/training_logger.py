@@ -24,8 +24,12 @@ class TrainingLogger:
 
         # Configure each logger
         for name, logger in self.loggers.items():
-            logger.setLevel(logging.DEBUG)  # Set all to DEBUG initially
-            logger.addFilter(DebugFilter())  # Attach the filter
+            logger.setLevel(logging.INFO)
+            logger.addFilter(DebugFilter())
+            
+            # Remove existing handlers before adding new ones
+            if logger.hasHandlers():
+                logger.handlers.clear()
             
             # Console handler
             console_handler = logging.StreamHandler()
@@ -56,15 +60,15 @@ class TrainingLogger:
 
     def log_lr_changes(self, message):
         if self.debug_config.get('print_lr_changes', False):
-            self.loggers['lr_changes'].debug(message)
+            self.loggers['lr_changes'].info(message)
 
     def log_lambda_updates(self, message):
         if self.debug_config.get('print_lambda_updates', False):
-            self.loggers['lambda_updates'].debug(message)
+            self.loggers['lambda_updates'].info(message)
 
     def log_point_selection(self, message):
         if self.debug_config.get('print_point_selection', False):
-            self.loggers['point_selection'].debug(message)
+            self.loggers['point_selection'].info(message)
 
     def log_point_selection_with_metrics(self, point):
         if self.debug_config.get('print_point_selection', False):
@@ -72,7 +76,7 @@ class TrainingLogger:
             message += f"      Evaluation Type-I Error: {point['evaluation_metrics']['type1_error_rate']}\n"
             message += f"      Evaluation Type-II Error (Target): {point['evaluation_metrics']['type2_error_rate_target']}\n"
             message += f"      Evaluation Type-II Error (Source): {point['evaluation_metrics']['type2_error_rate_source']}"
-            self.loggers['point_selection'].debug(message)
+            self.loggers['point_selection'].info(message)
 
     def show_training_loss_plot(self, epoch_training_losses, epoch_validation_losses, lr_change_epochs):
         """Displays loss plots if the corresponding debug mode is enabled."""

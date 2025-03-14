@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from tlnp.runner import TLNP
+from tlnp import TLNP
 
 def sample_multivariate_normal(num_features, mean_value, num_samples):
     cov_matrix = torch.eye(num_features)    # Identity covariance matrix
@@ -33,25 +33,29 @@ if __name__ == "__main__":
     torch.manual_seed(42)
     
     # Generate random tensors
-    num_features = 15                                                            # 15 input dimensions
-    target_normal_data = sample_multivariate_normal(num_features, 0.0, 4500)     # Mean 0
-    source_abnormal_data = sample_multivariate_normal(num_features, 0.55, 3000)   # Mean 0.55
-    target_abnormal_data = sample_multivariate_normal(num_features, 0.60, 50)    # Mean 0.50
+    num_features = 5 # 5 input dimensions
+
+    # Target normal data with mean 0
+    target_normal_data = sample_multivariate_normal(num_features, 0.0, 4000)
+    target_normal_test_data = sample_multivariate_normal(num_features, 0.0, 5000)
     
-    # Split the data into training and testing sets
-    target_normal_train, target_normal_test = train_test_split(target_normal_data)
-    target_abnormal_train, target_abnormal_test = train_test_split(target_abnormal_data)
+    # Target abnormal data with mean 0.5
+    target_abnormal_data = sample_multivariate_normal(num_features, 0.50, 100)
+    target_abnormal_test_data = sample_multivariate_normal(num_features, 0.50, 5000)
+
+    # Source abnormal data with mean 0.49 (simulates data close to the target abnormal data)
+    source_abnormal_data = sample_multivariate_normal(num_features, 0.49, 3000)
     
     # Set the config_path
-    config_path = "tlnp/example_config.yaml"
+    config_path = "example_config.yaml"
     
     # Define the data dict
     data_dict = {
-        "target_normal_data": target_normal_train,
-        "target_abnormal_data": target_abnormal_train,
+        "target_normal_data": target_normal_data,
+        "target_abnormal_data": target_abnormal_data,
         "source_abnormal_data": source_abnormal_data,
-        "target_normal_test_data": target_normal_test,
-        "target_abnormal_test_data": target_abnormal_test
+        "target_normal_test_data": target_normal_test_data,
+        "target_abnormal_test_data": target_abnormal_test_data,
     }
     
     # Define the model    
@@ -62,6 +66,9 @@ if __name__ == "__main__":
 
     # Run NNP
     nnp_results = TLNP.run_naive_np(config_path, data_dict, model)
-    
+
+    # Print results
+    print(f"\nTLNP Results:")
     print(tlnp_results["test_metrics"])
+    print(f"\nNNP Results:")
     print(nnp_results["test_metrics"])

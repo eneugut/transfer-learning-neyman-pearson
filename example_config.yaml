@@ -1,6 +1,8 @@
-seed: 1 # Optional. If not provided, no seed is set before training
+seed: 42 # Optional. If provided, results will be reproducible
 device: "cpu"
-model_save_path: "tlnp/model" # Optional. If not provided, the model will not be saved. '_tlnp.pth' or '_nnp.pth' is appended.
+model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended. 
+results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
+restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
 type1_error_upperbound: 0.05
 # type1_error_lowerbound: 0.03 # Optional. Recommended NOT to provide a lowerbound and allow the algorithm to calculate it.
 num_epochs: 100
@@ -10,7 +12,7 @@ data_standardization: true # Normalizes data to have mean 0 and standard deviati
 cols_to_standardize: [0, 2, 3] # Which columns to standardize. If None, all columns are standardized
 early_stopping_patience: 30
 early_stopping_min_delta: 0.001
-max_grad_norm: 3.0
+max_grad_norm: 3.0 # Optional. Clips gradients.
 selection_constant: 0.5 # Used during selection of the final point after all trainings are complete
 perform_variance_method: true # If true, the variance method is performed, which adds significant time to training
 lambda_source_list: [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100] # List of lambdas to try. A shorter list will run faster.
