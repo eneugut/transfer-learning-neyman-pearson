@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from tlnp import TLNP
+from tlnp_lib import TLNP
 
 def sample_multivariate_normal(num_features, mean_value, num_samples):
     cov_matrix = torch.eye(num_features)    # Identity covariance matrix

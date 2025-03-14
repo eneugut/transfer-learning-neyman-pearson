@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tlnp"
+name = "tlnp-lib"
 version = "0.1.0"
 description = "A framework for transfer learning with a Neyman Pearson approach"
 readme = "README.md"
@@ -29,7 +29,4 @@ Repository = "https://github.com/eneugut/transfer-learning-neyman-pearson"
 Issues = "https://github.com/eneugut/transfer-learning-neyman-pearson/issues"
 
 [tool.setuptools]
-packages = ["tlnp"]
-
-[tool.setuptools.package-data]
-tlnp = ["*.json", "*.txt"]
+packages = ["tlnp_lib"]

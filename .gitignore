@@ -3,3 +3,5 @@
 /*.json
 *.pth
 paper/data/climsim_data/combined_daily_data_rain.csv
+dist/
+*.egg-info/
