@@ -1,0 +1,58 @@
+seed: 42 # Optional. If provided, results will be reproducible
+device: "cpu"
+model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended. 
+results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
+restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
+type1_error_upperbound: 0.05
+# type1_error_lowerbound: 0.03 # Optional. Recommended NOT to provide a lowerbound and allow the algorithm to calculate it.
+num_epochs: 100
+batch_size: 16
+validation_split: 0.2
+data_standardization: true # Normalizes data to have mean 0 and standard deviation 1
+cols_to_standardize: [0, 2, 3] # Which columns to standardize. If None, all columns are standardized
+early_stopping_patience: 30
+early_stopping_min_delta: 0.001
+max_grad_norm: 3.0 # Optional. Clips gradients.
+selection_constant: 0.5 # Used during selection of the final point after all trainings are complete
+perform_variance_method: true # If true, the variance method is performed, which adds significant time to training
+lambda_source_list: [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100] # List of lambdas to try. A shorter list will run faster.
+lambda_limit: 1.0e+6 # If lambda_normal reaches this limit, then the lambda_source did not converge
+max_tuning_tries: 45 # Max number of tunings of lambda_normal before considering the lambda_source did not converge
+loss_function_config: # Optional. If not provided, a loss function must be provided. See documentation for more details about valid loss functions.
+  loss_function_type: "ExponentialLoss"
+  normalize_losses: true
+  clip_value: 20
+optimizer_config: # Optional. If not provided, an optimizer must be provided.
+  optimizer_type: "Adam"
+  learning_rate: 0.002
+  SGD:
+    momentum: 0
+  Adam:
+    betas: [0.9, 0.999]
+  RMSprop:
+    alpha: 0.99
+scheduler_config: # Optional. If not provided, you can provide a scheduler directly. If neither are provided, no scheduler will be used.
+  scheduler_type: "ReduceLROnPlateau"
+  StepLR:
+    step_size: 10
+    gamma: 0.5
+  ExponentialLR:
+    gamma: 0.9
+  ReduceLROnPlateau:
+    factor: 0.10
+    patience: 5
+    threshold: 0.0001
+    threshold_mode: 'rel'
+    cooldown: 0
+    min_lr: 0
+    eps: 1.0e-08
+debug_modes:
+  log_filename: 'debug.log' # Optional. If not provided, no log file will be created.
+  print_training_progress: False # Prints losses at the end of an epoch
+  print_training_epoch_frequency: 25 # Prints losses every n epochs
+  print_lr_changes: False # Prints the learning rate changes
+  show_losses_plots: False # Shows the losses plots after each training. Useful when tuning the model
+  show_lr_changes: True # Shows the learning rate changes in the losses plots
+  log_scale: False # If true, the losses plots will be in log scale
+  print_lambda_updates: False # Prints values related to tuning lambda_normal
+  print_point_selection: True # Prints the point selection process after all trainings are complete
