@@ -2,7 +2,7 @@ import torch
 import json
 import time
 
-from tlnp.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
+from tlnp_lib.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
 
 class NaiveNeymanPearson(TransferLearningNeymanPearson):
     def __init__(self, *args, **kwargs):

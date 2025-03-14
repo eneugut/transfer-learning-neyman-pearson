@@ -5,10 +5,10 @@ import time
 import traceback
 import json
 
-from tlnp.lambda_tuner import LambdaTuner
-from tlnp.training_logger import TrainingLogger
-from tlnp.training_utils import TrainingUtils
-from tlnp.point_selection_utils import PointSelectionUtils
+from tlnp_lib.lambda_tuner import LambdaTuner
+from tlnp_lib.training_logger import TrainingLogger
+from tlnp_lib.training_utils import TrainingUtils
+from tlnp_lib.point_selection_utils import PointSelectionUtils
 
 class TransferLearningNeymanPearson:
     def __init__(self, config, data_dict, model, loss_function, optimizer, scheduler):

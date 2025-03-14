@@ -1,7 +1,7 @@
-from tlnp.naive_neyman_pearson import NaiveNeymanPearson
-from tlnp.optimizers import Optimizers
-from tlnp.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
-from tlnp.loss import LossFunctions
+from tlnp_lib.naive_neyman_pearson import NaiveNeymanPearson
+from tlnp_lib.optimizers import Optimizers
+from tlnp_lib.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
+from tlnp_lib.loss import LossFunctions
 import yaml
 import torch.optim as optim
 
