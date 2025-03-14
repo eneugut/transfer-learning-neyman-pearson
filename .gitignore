@@ -1,5 +1,5 @@
 */__pycache__/*
 *.log
-*.json
+/*.json
 *.pth
-paper/data/*
+paper/data/climsim_data/combined_daily_data_rain.csv
