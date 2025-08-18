@@ -11,13 +11,14 @@ from tlnp_lib.training_utils import TrainingUtils
 from tlnp_lib.point_selection_utils import PointSelectionUtils
 
 class TransferLearningNeymanPearson:
-    def __init__(self, config, data_dict, model, loss_function, optimizer, scheduler):
+    def __init__(self, config, data_dict, model, loss_function, optimizer, scheduler, defaults = None, model_suffix = '_tlnp'):
         # Store objects
         self.data_dict = data_dict
         self.model = model
         self.loss_function = loss_function
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self.model_suffix = model_suffix
 
         # Set up logger and utils
         self.logger = TrainingLogger(config.get('debug_modes', {}))
@@ -28,28 +29,29 @@ class TransferLearningNeymanPearson:
                           for key, value in data_dict.items()}
 
         # Unpack config with defaults
-        defaults = {
-            'num_epochs': 100,
-            'batch_size': 16,
-            'max_grad_norm': None,
-            'early_stopping_patience': 30,
-            'early_stopping_min_delta': 0.001,
-            'lambda_source_list': [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100],
-            'selection_constant': 0.5,
-            'type1_error_upperbound': 0.2,
-            'type1_error_lowerbound': None,
-            'validation_split': 0.2,
-            'data_standardization': False,
-            'cols_to_standardize': None,  # If none, standardizes all columns
-            'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-            'lambda_limit': 1e6,
-            'max_tuning_tries': 30,
-            'initial_increment_factor': 0.5,
-            'seed': None,
-            'model_save_path': None,
-            'results_save_path': None,
-            'restore_model_after_completion': True,
-        }
+        if defaults is None:
+            defaults = {
+                'num_epochs': 100,
+                'batch_size': 16,
+                'max_grad_norm': None,
+                'early_stopping_patience': 30,
+                'early_stopping_min_delta': 0.001,
+                'lambda_source_list': [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100],
+                'selection_constant': 0.5,
+                'type1_error_upperbound': 0.2,
+                'type1_error_lowerbound': None,
+                'validation_split': 0.2,
+                'data_standardization': False,
+                'cols_to_standardize': None,  # If none, standardizes all columns
+                'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+                'lambda_limit': 1e6,
+                'max_tuning_tries': 30,
+                'initial_increment_factor': 0.5,
+                'seed': None,
+                'model_save_path': None,
+                'results_save_path': None,
+                'restore_model_after_completion': True,
+            }
         for key, default_value in defaults.items():
             setattr(self, key, config.get(key, default_value))
 
@@ -69,9 +71,12 @@ class TransferLearningNeymanPearson:
         # Handle optional source data
         self.source_exists = 'source_abnormal_data' in self.data_dict
         if not self.source_exists:
+            self.logger.log(f"No source data found in data_dict.")
             # If no source data, create an empty tensor to avoid checks
             feature_dim = self.data_dict['target_abnormal_data'].shape[1]
             self.data_dict['source_abnormal_data'] = torch.empty(
+                (0, feature_dim))
+            self.data_dict['source_normal_data'] = torch.empty(
                 (0, feature_dim))
 
         # Transfer data and model to device
@@ -364,7 +369,7 @@ class TransferLearningNeymanPearson:
 
         return (type1_error_rate, type2_error_rate_target)
 
-    def _evaluate_on_test_data(self, best_point, model_suffix=""):
+    def _evaluate_on_test_data(self, best_point):
         # Evaluate test data after all trainings have completed and the final point is chosen        
         test_error_dict = {}
         if not self.has_test_data:
@@ -410,7 +415,7 @@ class TransferLearningNeymanPearson:
 
         # Save the model
         if self.model_save_path:
-            model_save_path = self.model_save_path + model_suffix + ".pth"
+            model_save_path = self.model_save_path + self.model_suffix + ".pth"
             self.logger.log(f"Saving model to {model_save_path}")
             torch.save(self.model.state_dict(), model_save_path)
 
@@ -446,7 +451,7 @@ class TransferLearningNeymanPearson:
             print(traceback.format_exc())
 
     def run_training_without_source(self):
-        self.logger.log(f"No source data in data_dict. Training without source.")
+        self.logger.log(f"Training without source data.")
         
         # Fine-tune with lambda_source fixed at 0
         best_point = self.lambda_tuner.fine_tune_lambda(
@@ -462,8 +467,7 @@ class TransferLearningNeymanPearson:
             raise ValueError(f"No suitable point could be found.")
 
         # Evaluate and store test results
-        test_error_dict = self._evaluate_on_test_data(
-            best_point, model_suffix="_tlnp")
+        test_error_dict = self._evaluate_on_test_data(best_point)
         self.all_results["test_metrics"] = {
             'best_lambda_source': best_point[0],
             'best_lambda_normal': best_point[1],

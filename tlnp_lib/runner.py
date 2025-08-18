@@ -1,11 +1,18 @@
 from tlnp_lib.naive_neyman_pearson import NaiveNeymanPearson
 from tlnp_lib.optimizers import Optimizers
 from tlnp_lib.transfer_learning_neyman_pearson import TransferLearningNeymanPearson
+from tlnp_lib.new_transfer_learning_neyman_pearson import NewTransferLearningNeymanPearson
 from tlnp_lib.loss import LossFunctions
 import yaml
 import torch.optim as optim
 
 class TLNP:
+    def run_new_tlnp(config_path, data_dict, model, loss_function = None, optimizer = None, scheduler = None):
+        config, loss_function, optimizer, scheduler = TLNP._process_config_file(config_path, model, loss_function, optimizer, scheduler)
+        TLNP._check_data_dict(data_dict)
+        
+        new_tlnp = NewTransferLearningNeymanPearson(config, data_dict, model, loss_function, optimizer, scheduler)
+        return new_tlnp.run_training_process()
     
     def run_tlnp(config_path, data_dict, model, loss_function = None, optimizer = None, scheduler = None):
         config, loss_function, optimizer, scheduler = TLNP._process_config_file(config_path, model, loss_function, optimizer, scheduler)

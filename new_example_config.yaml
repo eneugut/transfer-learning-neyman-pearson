@@ -4,14 +4,18 @@ model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended.
 results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
 restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
 type1_error_upperbound: 0.05
-constants:
-  constant_target_normal: 1
-  constant_target_abnormal: 1
-  constant_source_normal: 1
-  constant_source_abnormal: 1
+constant_target_normal: 1
+constant_target_abnormal: 1
+constant_source_normal: 1
+constant_source_abnormal: 1
+eta_alpha: 1
+eta_theta: 1
+eta_lambda: 1
+gamma: 1
+main_training_loss_function_type: "ExponentialLoss" # The loss function used during main training
 # type1_error_lowerbound: 0.03 # Optional. Recommended NOT to provide a lowerbound and allow the algorithm to calculate it.
 num_epochs: 100
-batch_size: 16
+batch_size: 80
 validation_split: 0.2
 data_standardization: true # Normalizes data to have mean 0 and standard deviation 1
 cols_to_standardize: [0, 2, 3] # Which columns to standardize. If None, all columns are standardized
@@ -53,11 +57,11 @@ scheduler_config: # Optional. If not provided, you can provide a scheduler direc
     eps: 1.0e-08
 debug_modes:
   log_filename: 'debug.log' # Optional. If not provided, no log file will be created.
-  print_training_progress: False # Prints losses at the end of an epoch
+  print_training_progress: True # Prints losses at the end of an epoch
   print_training_epoch_frequency: 25 # Prints losses every n epochs
   print_lr_changes: False # Prints the learning rate changes
   show_losses_plots: False # Shows the losses plots after each training. Useful when tuning the model
   show_lr_changes: True # Shows the learning rate changes in the losses plots
   log_scale: False # If true, the losses plots will be in log scale
-  print_lambda_updates: False # Prints values related to tuning lambda_normal
+  print_lambda_updates: True # Prints values related to tuning lambda_normal
   print_point_selection: True # Prints the point selection process after all trainings are complete

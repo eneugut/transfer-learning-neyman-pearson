@@ -44,7 +44,8 @@ class TrainingUtils:
         combined_data = torch.cat([
             data_dict['target_normal_data'],
             data_dict['target_abnormal_data'],
-            data_dict['source_abnormal_data']
+            data_dict['source_normal_data'],
+            data_dict['source_abnormal_data'],
         ], dim=0)
 
         # Compute mean and std from the concatenated dataset
@@ -111,26 +112,32 @@ class TrainingUtils:
         target_abnormal_train, target_abnormal_val = TrainingUtils.train_test_split(data_dict['target_abnormal_data'], device, validation_split)
         target_normal_train, target_normal_val = TrainingUtils.train_test_split(data_dict['target_normal_data'], device, validation_split)
         source_abnormal_train, source_abnormal_val = TrainingUtils.train_test_split(data_dict['source_abnormal_data'], device, validation_split)
+        source_normal_train, source_normal_val = TrainingUtils.train_test_split(data_dict['source_normal_data'], device, validation_split)
 
         # Concatenate the training and validation sets
-        X_train = torch.cat([target_abnormal_train, target_normal_train, source_abnormal_train], dim=0)
+        X_train = torch.cat([target_abnormal_train, target_normal_train, source_abnormal_train, source_normal_train], dim=0)
         labels_train = torch.cat([torch.ones(target_abnormal_train.size(0), 1, device=device),
                                     torch.zeros(target_normal_train.size(0), 1, device=device),
-                                    2 * torch.ones(source_abnormal_train.size(0), 1, device=device)], dim=0)
-        X_val = torch.cat([target_abnormal_val, target_normal_val, source_abnormal_val], dim=0)
+                                    2 * torch.ones(source_abnormal_train.size(0), 1, device=device),
+                                    3 * torch.ones(source_normal_train.size(0), 1, device=device),
+                                    ], dim=0)
+        X_val = torch.cat([target_abnormal_val, target_normal_val, source_abnormal_val, source_normal_val], dim=0)
         labels_val = torch.cat([torch.ones(target_abnormal_val.size(0), 1, device=device),
                                 torch.zeros(target_normal_val.size(0), 1, device=device),
-                                2 * torch.ones(source_abnormal_val.size(0), 1, device=device)], dim=0)
+                                2 * torch.ones(source_abnormal_val.size(0), 1, device=device),
+                                3 * torch.ones(source_normal_val.size(0), 1, device=device),
+                                ], dim=0)
 
         return X_train, labels_train, X_val, labels_val
     
     @staticmethod
     def prepare_evaluation_data(data_dict, device):
-        X_evaluation = torch.cat([data_dict['target_abnormal_data'], data_dict['target_normal_data'], data_dict['source_abnormal_data']], dim=0)
+        X_evaluation = torch.cat([data_dict['target_abnormal_data'], data_dict['target_normal_data'], data_dict['source_abnormal_data'], data_dict['source_normal_data']], dim=0)
         labels_evaluation = torch.cat([
-            torch.ones(data_dict['target_abnormal_data'].size(0), device=device),  # Abnormal data gets label 1
-            torch.zeros(data_dict['target_normal_data'].size(0), device=device),  # Normal data gets label 0
-            2 * torch.ones(data_dict['source_abnormal_data'].size(0), device=device)  # Source data gets label 2
+            torch.ones(data_dict['target_abnormal_data'].size(0), device=device),  # Target abnormal data gets label 1
+            torch.zeros(data_dict['target_normal_data'].size(0), device=device),  # Target normal data gets label 0
+            2 * torch.ones(data_dict['source_abnormal_data'].size(0), device=device),  # Source abnormal data gets label 2
+            3 * torch.ones(data_dict['source_normal_data'].size(0), device=device),  # Source abnormal data gets label 3
         ], dim=0)
         return X_evaluation, labels_evaluation
 
