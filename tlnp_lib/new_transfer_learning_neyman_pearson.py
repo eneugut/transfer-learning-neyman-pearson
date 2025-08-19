@@ -84,11 +84,17 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
     # Training Helper Functions
     ###########################################################################
 
+    def _safe_num_batches(self, labels: torch.Tensor):
+        # counts for codes 0..3
+        counts = [int((labels.view(-1).long() == k).sum()) for k in (0,1,2,3)]
+        min_per_group = max(1, min(counts))  # at least 1 if groups exist
+        target_batches = max(1, int(round(labels.size(0) / float(self.batch_size))))
+        return min(target_batches, min_per_group)
+
     def _batch_iterator(
         self, X: torch.Tensor, labels: torch.Tensor, num_batches: int,
         enforce_presence: bool = True, shuffle_within_batch: bool = True
     ):
-        device = labels.device
         y = labels.view(-1).long()
         groups = [torch.where(y == k)[0] for k in (0, 1, 2, 3)]
 
@@ -144,6 +150,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
 
     def run_main_model_training(self):
         self.logger.log_training_progress(f"Running main model training")
+        self.alpha_prime_list = []
 
         # Initialize tracking variables
         epoch_training_losses, epoch_validation_losses, lr_change_epochs = [], [], []
@@ -199,9 +206,18 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         # Lambda pair evaluation
         evaluation_error_rates = self._evaluate_lambda_pair()
 
+        # Evaluate alpha_prime statistics
+        avg_alpha_prime = (
+            sum(self.alpha_prime_list) / len(self.alpha_prime_list)
+            if self.alpha_prime_list else float("nan")
+        )
+        self.logger.log_training_progress(
+            f"Average alpha' across training steps: {avg_alpha_prime:.6f}"
+        )
+
         # Store results
         self._store_main_training_results(epoch_training_losses,
-            epoch_validation_losses, evaluation_error_rates)
+            epoch_validation_losses, evaluation_error_rates, avg_alpha_prime, self.alpha_prime_list)
 
         return evaluation_error_rates
 
@@ -209,7 +225,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         self.model.train()
         total_g, steps = 0.0, 0
 
-        num_batches = max(1, int(round(X_train.size(0) / float(self.batch_size))))
+        num_batches = self._safe_num_batches(labels_train)
         for Xb, Yb in self._batch_iterator(X_train, labels_train, num_batches, enforce_presence=True):
             # Zero grads
             self.optimizer.zero_grad(set_to_none=True)
@@ -244,6 +260,9 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 self.obj.alpha_prime -= self.eta_alpha * (1.0 + self.obj.lmbda * grad_alpha)
                 self.obj.alpha_prime.data.clamp_(min=self.obj.alpha)
                 self.obj.alpha_prime.grad = None
+                
+                # record α′ after the update
+                self.alpha_prime_list.append(float(self.obj.alpha_prime.detach().item()))
 
             # λ step
             with torch.no_grad():
@@ -261,7 +280,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         self.model.eval()
         total_g, steps = 0.0, 0
         with torch.no_grad():
-            num_batches = max(1, int(round(X_val.size(0) / float(self.batch_size))))
+            num_batches = self._safe_num_batches(labels_val)
             for Xb, Yb in self._batch_iterator(X_val, labels_val, num_batches, enforce_presence=True):
                 g, _, _, _ = self.obj(Xb, Yb)
                 total_g += g.item()
@@ -269,7 +288,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         self.model.train()
         return total_g / max(steps, 1)
 
-    def _store_main_training_results(self, epoch_training_losses, epoch_validation_losses, evaluation_error_rates):
+    def _store_main_training_results(self, epoch_training_losses, epoch_validation_losses, evaluation_error_rates, alpha_prime_avg, alpha_prime_list):
         # Generate a unique key for this lambda pair
         # Store the results for this specific lambda pair
         self.all_results["main_training_results"] = {
@@ -279,7 +298,9 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 'type1_error_rate': evaluation_error_rates[0],
                 'type2_error_rate_target': evaluation_error_rates[1],
                 **({'type2_error_rate_source': evaluation_error_rates[2]} if len(evaluation_error_rates) > 2 else {}),
-            }
+            },
+            'alpha_prime_avg': alpha_prime_avg,
+            'alpha_prime_list': alpha_prime_list,
         }
 
         # Print evaluation results
@@ -345,7 +366,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             self._restore_initial_states()
 
         return test_error_dict
-
+        
     ###########################################################################
     # Core Process Functions
     ###########################################################################
@@ -368,6 +389,29 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             print(f"Error occurred during training process: {e}")
             print(traceback.format_exc())
 
+    def compute_R1T_hat_const(self):
+        # Load best model state
+        best_lambda_normal = self.all_results['test_metrics']['best_lambda_normal']
+        best_model = self.all_model_states[f'lambda_source_0.0_lambda_normal_{best_lambda_normal}']
+        self.model.load_state_dict(best_model)
+
+        # Get all training data (no val split)
+        X_all, labels_all, _, _ = self.utils.prepare_data_splits(self.data_dict, self.device, validation_split=0.0)
+        # Compute R1T_hat_const
+        R1T_hat_const = MaxRiskObjective.compute_R1T_hat_const_from_data(
+            self.model,
+            X_all,
+            labels_all,
+            code_T1=1,                                          # your label code for T1
+            loss_function_type=self.main_training_loss_function_type,    # "LogisticLoss" / "ExponentialLoss" / "HingeLoss"
+            device=self.device,
+        )
+        
+        # Restore model state
+        self._restore_initial_states()
+
+        return R1T_hat_const
+
     def run_training_with_source(self):
         # First, run training without source
         self.data_dict_copy = copy.deepcopy(self.data_dict)
@@ -379,25 +423,25 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             'source_abnormal_data': torch.empty((0, feature_dim)),
         }
         self.run_training_without_source()
-        self.data_dict = self.data_dict_copy
-        best_lambda_normal = self.all_results['test_metrics']['best_lambda_normal']
-        self.R1T_hat_const = self.all_results['training_results'][f'lambda_source_0.0_lambda_normal_{best_lambda_normal}']['evaluation_metrics']['type2_error_rate_target']
-        # Dict to store all results and model states
-        self.all_results = {
-            'approach_name': 'new_tlnp', 
-            'config': copy.deepcopy(self.all_results["config"]), 
-            'first_stage_results': copy.deepcopy(self.all_results)
-        }
-        
+
         # compute R1T_hat_const once (with theta_hat model) and pass it in
         self.obj = MaxRiskObjective(
             model=self.model,
             alpha=self.alpha,
             epsilon_0_T=self.epsilon_0_T, epsilon_1_T=self.epsilon_1_T,
             epsilon_0_S=self.epsilon_0_S, epsilon_1_S=self.epsilon_1_S,
-            R1T_hat_const=self.R1T_hat_const,
+            R1T_hat_const=self.compute_R1T_hat_const(),
             loss_function_type=self.main_training_loss_function_type,
         ).to(self.device)
+
+        # Restore data dict
+        self.data_dict = self.data_dict_copy
+        # Dict to store all results and model states
+        self.all_results = {
+            'approach_name': 'new_tlnp', 
+            'config': copy.deepcopy(self.all_results["config"]), 
+            'first_stage_results': copy.deepcopy(self.all_results)
+        }
         
         # Run main stage training process
         self.run_main_model_training()

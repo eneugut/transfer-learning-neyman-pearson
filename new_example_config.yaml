@@ -8,10 +8,10 @@ constant_target_normal: 1
 constant_target_abnormal: 1
 constant_source_normal: 1
 constant_source_abnormal: 1
-eta_alpha: 1
-eta_theta: 1
-eta_lambda: 1
-gamma: 1
+eta_alpha: 1.0e-4
+eta_theta: 1.0e-4
+eta_lambda: 1.0e-4
+gamma: 1.0e-4
 main_training_loss_function_type: "ExponentialLoss" # The loss function used during main training
 # type1_error_lowerbound: 0.03 # Optional. Recommended NOT to provide a lowerbound and allow the algorithm to calculate it.
 num_epochs: 100
