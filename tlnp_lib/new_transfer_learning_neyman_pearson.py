@@ -214,6 +214,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         self.logger.log_training_progress(
             f"Average alpha' across training steps: {avg_alpha_prime:.6f}"
         )
+        print(self.alpha_prime_list)
 
         # Store results
         self._store_main_training_results(epoch_training_losses,

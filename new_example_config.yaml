@@ -3,11 +3,11 @@ device: "cpu"
 model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended. 
 results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
 restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
-type1_error_upperbound: 0.05
-constant_target_normal: 1
-constant_target_abnormal: 1
-constant_source_normal: 1
-constant_source_abnormal: 1
+type1_error_upperbound: 0.2
+constant_target_normal: 0.5
+constant_target_abnormal: 0.5
+constant_source_normal: 0.5
+constant_source_abnormal: 0.5
 eta_alpha: 1.0e-4
 eta_theta: 1.0e-4
 eta_lambda: 1.0e-4
