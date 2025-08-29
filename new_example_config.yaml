@@ -3,7 +3,7 @@ device: "cpu"
 model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended. 
 results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
 restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
-type1_error_upperbound: 0.2
+type1_error_upperbound: 0.15
 constant_target_normal: 0.5
 constant_target_abnormal: 0.5
 constant_source_normal: 0.5
@@ -60,7 +60,7 @@ debug_modes:
   print_training_progress: True # Prints losses at the end of an epoch
   print_training_epoch_frequency: 25 # Prints losses every n epochs
   print_lr_changes: False # Prints the learning rate changes
-  show_losses_plots: False # Shows the losses plots after each training. Useful when tuning the model
+  show_losses_plots: True # Shows the losses plots after each training. Useful when tuning the model
   show_lr_changes: True # Shows the learning rate changes in the losses plots
   log_scale: False # If true, the losses plots will be in log scale
   print_lambda_updates: True # Prints values related to tuning lambda_normal

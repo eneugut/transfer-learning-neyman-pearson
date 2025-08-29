@@ -62,6 +62,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         else:
             self.epsilon_0_S = 0
             self.epsilon_1_S = 0
+        print(f"epsilons: ε0_T={self.epsilon_0_T:.4f}, ε1_T={self.epsilon_1_T:.4f}, ε0_S={self.epsilon_0_S:.4f}, ε1_S={self.epsilon_1_S:.4f}")
 
     # Override the base class method to set Type-I error bounds with epsilon
     def _set_type1_lowerbound(self):
@@ -71,14 +72,14 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             raise ValueError(
                 f"Type-I error upperbound must be between 0 and 1.")
         if not self.type1_error_lowerbound:
-            self.type1_error_lowerbound = self.type1_error_upperbound - self.epsilon_0_T * 2
+            self.type1_error_lowerbound = self.type1_error_upperbound - self.epsilon_0_T
         else:
             if self.type1_error_lowerbound < 0 or self.type1_error_lowerbound >= self.type1_error_upperbound:
                 raise ValueError(
                     f"Type-I error lowerbound must be between 0 and {self.type1_error_upperbound}.")
         self.logger.log(
             f"Using Type-I error range: [{round(self.type1_error_lowerbound,4)}, {round(self.type1_error_upperbound,4)}]")
-        self.alpha = (self.type1_error_lowerbound + self.type1_error_upperbound)/2
+        self.alpha = self.type1_error_upperbound
 
     ###########################################################################
     # Training Helper Functions
@@ -157,6 +158,10 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         total_epoch_time = 0
         best_val_loss, best_model_state, epochs_without_improvement = float(
             'inf'), None, 0
+
+        # Reset optimizer learning rate to 1.0 at the start of main training
+        for g in self.optimizer.param_groups:
+            g["lr"] = 1.0
 
         for epoch in range(self.num_epochs):
             epoch_start_time = time.time()
@@ -247,7 +252,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 lam = self.obj.lmbda
                 for p in self.model.parameters():
                     if p.grad is not None:
-                        p.grad.mul_(lam)
+                        p.grad.mul_(lam).mul_(self.eta_theta)
 
             if self.max_grad_norm:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
@@ -263,6 +268,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 self.obj.alpha_prime.grad = None
                 
                 # record α′ after the update
+                print(float(self.obj.alpha_prime.detach().item()))
                 self.alpha_prime_list.append(float(self.obj.alpha_prime.detach().item()))
 
             # λ step

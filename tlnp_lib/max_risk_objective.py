@@ -43,7 +43,9 @@ class MaxRiskObjective(nn.Module):
             return F.binary_cross_entropy_with_logits(logits_subset, target, reduction="mean")
         elif loss_function_type == "ExponentialLoss":     # exp loss on margin ỹ∈{-1,+1}
             y_tilde = (2.0 * float(target01) - 1.0)   # 0->-1, 1->+1
-            return torch.exp(-y_tilde * logits_subset).mean()
+            margin = -y_tilde * logits_subset
+            margin_clamped = torch.clamp(margin, max=20.0)   # cap exponent argument
+            return torch.exp(margin_clamped).mean()
         elif loss_function_type == "HingeLoss":           # hinge on margin
             y_tilde = (2.0 * float(target01) - 1.0)
             return torch.clamp(1.0 - y_tilde * logits_subset, min=0.0).mean()
@@ -60,6 +62,7 @@ class MaxRiskObjective(nn.Module):
         R0T = self._loss_on_subset(logits[T0_mask], target01=0.0, loss_function_type=self.loss_function_type)  # target normals
         R1T = self._loss_on_subset(logits[T1_mask], target01=1.0, loss_function_type=self.loss_function_type)  # target abnormals
         R0S = self._loss_on_subset(logits[S0_mask], target01=0.0, loss_function_type=self.loss_function_type)  # source normals
+        print(f"R0T={R0T.item():.4f}, R1T={R1T.item():.4f}, R0S={R0S.item():.4f}")
         return R0T, R1T, R0S
 
     def f_values(self, R0T, R1T, R0S):
