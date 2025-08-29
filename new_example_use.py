@@ -43,7 +43,7 @@ if __name__ == "__main__":
     target_abnormal_data = sample_multivariate_normal(num_features, 0.50, 100)
     target_abnormal_test_data = sample_multivariate_normal(num_features, 0.50, 5000)
 
-    # Source abnormal data with mean 0.01 (simulates data close to the target normal data)
+    # Source abnormal data with mean 0
     source_normal_data = sample_multivariate_normal(num_features, 0.0, 4000)
 
     # Source abnormal data with mean 0.49 (simulates data close to the target abnormal data)

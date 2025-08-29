@@ -88,7 +88,7 @@ class TransferLearningNeymanPearson:
                                  'target_abnormal_test_data', 'target_normal_test_data'])
 
         # Set and check error thresholds
-        self._set_type1_lowerbound()
+        self._set_type1_bounds()
         self.utils.check_error_thresholds(
             self.data_dict['target_normal_data'], self.type1_error_lowerbound, self.type1_error_upperbound)
 
@@ -120,7 +120,7 @@ class TransferLearningNeymanPearson:
             self.lambda_max = 1/self.lambda_limit
             self.lambda_min = self.lambda_limit
 
-    def _set_type1_lowerbound(self):
+    def _set_type1_bounds(self):
         if self.type1_error_upperbound <= 0 or self.type1_error_upperbound >= 1:
             raise ValueError(
                 f"Type-I error upperbound must be between 0 and 1.")

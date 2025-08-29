@@ -23,6 +23,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             'early_stopping_min_delta': 0.001,
             'lambda_source_list': [0, 0.05, 0.1, 0.5, 1, 5, 10, 20, 40, 60, 80, 100],
             'selection_constant': 0.5,
+            'alpha': 0.2,
             'type1_error_upperbound': 0.2,
             'type1_error_lowerbound': None,
             'constant_target_normal': 1,
@@ -62,24 +63,15 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         else:
             self.epsilon_0_S = 0
             self.epsilon_1_S = 0
-        print(f"epsilons: ε0_T={self.epsilon_0_T:.4f}, ε1_T={self.epsilon_1_T:.4f}, ε0_S={self.epsilon_0_S:.4f}, ε1_S={self.epsilon_1_S:.4f}")
+        # print(f"epsilons: ε0_T={self.epsilon_0_T:.4f}, ε1_T={self.epsilon_1_T:.4f}, ε0_S={self.epsilon_0_S:.4f}, ε1_S={self.epsilon_1_S:.4f}")
 
     # Override the base class method to set Type-I error bounds with epsilon
-    def _set_type1_lowerbound(self):
+    def _set_type1_bounds(self):
         self._set_epsilons()
-        
-        if self.type1_error_upperbound <= 0 or self.type1_error_upperbound >= 1:
-            raise ValueError(
-                f"Type-I error upperbound must be between 0 and 1.")
-        if not self.type1_error_lowerbound:
-            self.type1_error_lowerbound = self.type1_error_upperbound - self.epsilon_0_T
-        else:
-            if self.type1_error_lowerbound < 0 or self.type1_error_lowerbound >= self.type1_error_upperbound:
-                raise ValueError(
-                    f"Type-I error lowerbound must be between 0 and {self.type1_error_upperbound}.")
+        self.type1_error_lowerbound = max(0.0, self.alpha - self.epsilon_0_T * 2)  # Ensure non-negative
+        self.type1_error_upperbound = min(1.0, self.alpha - self.epsilon_0_T)
         self.logger.log(
             f"Using Type-I error range: [{round(self.type1_error_lowerbound,4)}, {round(self.type1_error_upperbound,4)}]")
-        self.alpha = self.type1_error_upperbound
 
     ###########################################################################
     # Training Helper Functions
@@ -219,7 +211,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         self.logger.log_training_progress(
             f"Average alpha' across training steps: {avg_alpha_prime:.6f}"
         )
-        print(self.alpha_prime_list)
+        # print(self.alpha_prime_list)
 
         # Store results
         self._store_main_training_results(epoch_training_losses,
