@@ -221,7 +221,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
 
     def _train_one_epoch_main(self, X_train, labels_train):
         self.model.train()
-        total_g, steps = 0.0, 0
+        total_gmax, steps = 0.0, 0
 
         num_batches = self._safe_num_batches(labels_train)
         for Xb, Yb in self._batch_iterator(X_train, labels_train, num_batches, enforce_presence=True):
@@ -230,62 +230,69 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             if self.obj.alpha_prime.grad is not None:
                 self.obj.alpha_prime.grad.zero_()
 
-            # Forward -> g(θ_t, α'_t)
+            # Forward: L for backward, g_max for logging
             try:
-                g, _, (f1, f2, f3), (R0T, R1T, R0S) = self.obj(Xb, Yb)
+                L, g_max, (f1, f2, f3), (R0T, R1T, R0S) = self.obj(Xb, Yb)
             except ValueError:
                 continue
 
-            # Backprop
-            g.backward()
+            # Backprop L = α′ + λ1 f1 + λ2 f2 + λ3 f3
+            L.backward()
 
-            # θ step scaled by λ_t
+            # θ step: scale grads by eta_theta (optimizer lr should be 1.0)
             with torch.no_grad():
-                lam = self.obj.lmbda
                 for p in self.model.parameters():
                     if p.grad is not None:
-                        p.grad.mul_(lam).mul_(self.eta_theta)
+                        p.grad.mul_(self.eta_theta)
 
             if self.max_grad_norm:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
             self.optimizer.step()
 
-            # α′ step + projection
+            # α′ step + projection: α' ← max{α, α' − η_{α′} (1 − λ2)}
             with torch.no_grad():
+                # autograd gave ∂L/∂α′ = (1 - λ2), so grad_alpha = self.obj.alpha_prime.grad
                 grad_alpha = self.obj.alpha_prime.grad
                 if grad_alpha is None:
+                    # Shouldn’t happen because L includes alpha_prime, but guard anyway
                     grad_alpha = torch.tensor(0.0, device=self.obj.alpha_prime.device)
-                self.obj.alpha_prime -= self.eta_alpha * (1.0 + self.obj.lmbda * grad_alpha)
+
+                # gradient descent on L:
+                self.obj.alpha_prime -= self.eta_alpha * grad_alpha
+                # projection to α′ ≥ α
                 self.obj.alpha_prime.data.clamp_(min=self.obj.alpha)
                 self.obj.alpha_prime.grad = None
-                
-                # record α′ after the update
-                print(float(self.obj.alpha_prime.detach().item()))
+
+                # record α′ if you like
                 self.alpha_prime_list.append(float(self.obj.alpha_prime.detach().item()))
 
-            # λ step
+            # λ₁, λ₂, λ₃ updates on their respective residuals f1,f2,f3
             with torch.no_grad():
-                self.obj.lmbda = torch.relu(
-                    (1 - self.gamma * self.eta_lambda) * self.obj.lmbda
-                    + self.eta_lambda * g.detach()
-                )
+                eta = self.eta_lambda
+                decay = (1 - self.gamma * eta)
 
-            total_g += g.detach().item()
+                self.obj.lmbda1 = torch.relu(decay * self.obj.lmbda1 + eta * f1.detach())
+                self.obj.lmbda2 = torch.relu(decay * self.obj.lmbda2 + eta * f2.detach())
+                self.obj.lmbda3 = torch.relu(decay * self.obj.lmbda3 + eta * f3.detach())
+
+            total_gmax += g_max.detach().item()
             steps += 1
 
-        return total_g / max(steps, 1)
+        # return average worst-violation for logging
+        return total_gmax / max(steps, 1)
+
 
     def _validate_model_main(self, X_val, labels_val):
         self.model.eval()
-        total_g, steps = 0.0, 0
+        total_gmax, steps = 0.0, 0
         with torch.no_grad():
             num_batches = self._safe_num_batches(labels_val)
             for Xb, Yb in self._batch_iterator(X_val, labels_val, num_batches, enforce_presence=True):
-                g, _, _, _ = self.obj(Xb, Yb)
-                total_g += g.item()
+                L, g_max, _, _ = self.obj(Xb, Yb)
+                total_gmax += g_max.item()
                 steps += 1
         self.model.train()
-        return total_g / max(steps, 1)
+        return total_gmax / max(steps, 1)
 
     def _store_main_training_results(self, epoch_training_losses, epoch_validation_losses, evaluation_error_rates, alpha_prime_avg, alpha_prime_list):
         # Generate a unique key for this lambda pair
