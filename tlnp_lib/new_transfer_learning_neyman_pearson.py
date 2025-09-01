@@ -281,7 +281,6 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
         # return average worst-violation for logging
         return total_gmax / max(steps, 1)
 
-
     def _validate_model_main(self, X_val, labels_val):
         self.model.eval()
         total_gmax, steps = 0.0, 0

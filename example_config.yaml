@@ -4,11 +4,6 @@ model_save_path: "model" # Optional. '_tlnp.pth' or '_nnp.pth' is appended.
 results_save_path: "results" # Optional. '_tlnp.json' or '_nnp.json' is appended.
 restore_model_after_completion: true # If running TLNP/NNP multiple times consecutively, set to true
 type1_error_upperbound: 0.05
-constants:
-  constant_target_normal: 1
-  constant_target_abnormal: 1
-  constant_source_normal: 1
-  constant_source_abnormal: 1
 # type1_error_lowerbound: 0.03 # Optional. Recommended NOT to provide a lowerbound and allow the algorithm to calculate it.
 num_epochs: 100
 batch_size: 16
