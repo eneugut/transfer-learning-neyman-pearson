@@ -147,6 +147,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
 
         # Initialize tracking variables
         epoch_training_losses, epoch_validation_losses, lr_change_epochs = [], [], []
+        f1_training_losses, f2_training_losses, f3_training_losses = [], [], []
         total_epoch_time = 0
         best_val_loss, best_model_state, epochs_without_improvement = float(
             'inf'), None, 0
@@ -162,7 +163,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 self.data_dict, self.device, self.validation_split)
 
             # Train for one epoch
-            loss = self._train_one_epoch_main(X_train, labels_train)
+            loss = self._train_one_epoch_main(X_train, labels_train, f1_training_losses, f2_training_losses, f3_training_losses)
 
             # Validate the model
             val_loss = self._validate_model_main(X_val, labels_val)
@@ -193,8 +194,12 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 break
 
         # Show losses graph if required
-        self.logger.show_training_loss_plot(
-            epoch_training_losses, epoch_validation_losses, lr_change_epochs)
+        # self.logger.show_training_loss_plot(
+        #     epoch_training_losses, epoch_validation_losses, lr_change_epochs)
+
+        self.logger.show_f_training_loss_plot(
+            f1_training_losses, f2_training_losses, f3_training_losses)
+
 
         # Restore the best model state for evaluation
         if best_model_state:
@@ -219,9 +224,10 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
 
         return evaluation_error_rates
 
-    def _train_one_epoch_main(self, X_train, labels_train):
+    def _train_one_epoch_main(self, X_train, labels_train, f1_training_losses, f2_training_losses, f3_training_losses):
         self.model.train()
         total_gmax, steps = 0.0, 0
+        total_f1, total_f2, total_f3 = 0.0, 0.0, 0.0
 
         num_batches = self._safe_num_batches(labels_train)
         for Xb, Yb in self._batch_iterator(X_train, labels_train, num_batches, enforce_presence=True):
@@ -243,11 +249,11 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
             with torch.no_grad():
                 for p in self.model.parameters():
                     if p.grad is not None:
-                        p.grad.mul_(self.eta_theta)
+                        p = p - p.grad.mul_(self.eta_theta)
 
-            if self.max_grad_norm:
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
-            self.optimizer.step()
+            # if self.max_grad_norm:
+            #     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+            # self.optimizer.step()
 
             # α′ step + projection: α' ← max{α, α' − η_{α′} (1 − λ2)}
             with torch.no_grad():
@@ -258,6 +264,7 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                     grad_alpha = torch.tensor(0.0, device=self.obj.alpha_prime.device)
 
                 # gradient descent on L:
+                print(f"grad_alpha={grad_alpha.item():.4f}", end=", ")
                 self.obj.alpha_prime -= self.eta_alpha * grad_alpha
                 # projection to α′ ≥ α
                 self.obj.alpha_prime.data.clamp_(min=self.obj.alpha)
@@ -276,9 +283,14 @@ class NewTransferLearningNeymanPearson(TransferLearningNeymanPearson):
                 self.obj.lmbda3 = torch.relu(decay * self.obj.lmbda3 + eta * f3.detach())
 
             total_gmax += g_max.detach().item()
+            total_f1 += f1.detach().item()
+            total_f2 += f2.detach().item()
+            total_f3 += f3.detach().item()
             steps += 1
 
-        # return average worst-violation for logging
+        R0T, R1T, R0S = self.obj.compute_Rs(X_train, labels_train)
+        f1, f2, f3 = self.obj.f_values(R0T, R1T, R0S)
+
         return total_gmax / max(steps, 1)
 
     def _validate_model_main(self, X_val, labels_val):

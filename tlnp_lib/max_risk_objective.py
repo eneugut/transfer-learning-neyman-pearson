@@ -66,7 +66,7 @@ class MaxRiskObjective(nn.Module):
         R1T = self._loss_on_subset(logits[T1_mask], target01=1.0, loss_function_type=self.loss_function_type)
         R0S = self._loss_on_subset(logits[S0_mask], target01=0.0, loss_function_type=self.loss_function_type)
         # optional debug:
-        # print(f"R0T={R0T.item():.4f}, R1T={R1T.item():.4f}, R0S={R0S.item():.4f}")
+        print(f"R0T={R0T.item():.4f}, R1T={R1T.item():.4f}, R0S={R0S.item():.4f}")
         return R0T, R1T, R0S
 
     def f_values(self, R0T, R1T, R0S):
@@ -79,6 +79,7 @@ class MaxRiskObjective(nn.Module):
         # Compute risks and constraint residuals
         R0T, R1T, R0S = self.compute_Rs(X, labels)
         f1, f2, f3 = self.f_values(R0T, R1T, R0S)
+        print(f"f1={f1.item():.4f}, f2={f2.item():.4f}, f3={f3.item():.4f}")
 
         # For monitoring: worst violation
         f_stack = torch.stack([f1, f2, f3])

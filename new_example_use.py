@@ -44,10 +44,10 @@ if __name__ == "__main__":
     target_abnormal_test_data = sample_multivariate_normal(num_features, 0.50, 5000)
 
     # Source abnormal data with mean 0
-    source_normal_data = sample_multivariate_normal(num_features, 0.0, 4000)
+    source_normal_data = sample_multivariate_normal(num_features, 2.0, 4000)
 
     # Source abnormal data with mean 0.49 (simulates data close to the target abnormal data)
-    source_abnormal_data = sample_multivariate_normal(num_features, 0.49, 3000)
+    source_abnormal_data = sample_multivariate_normal(num_features, 0.0, 3000)
     
     # Set the config_path
     config_path = "new_example_config.yaml"

@@ -97,3 +97,18 @@ class TrainingLogger:
             ax2.plot(epoch_validation_losses)
             ax2.set_title('Validation Loss')
             plt.show()
+
+
+    def show_f_training_loss_plot(self, f1_training_losses, f2_training_losses, f3_training_losses):
+        """Displays loss plots if the corresponding debug mode is enabled."""
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 6))
+        ax1.plot(f1_training_losses)
+        ax1.set_title('f1 Training Loss')
+
+        ax2.plot(f2_training_losses)
+        ax2.set_title('f2 Training Loss')
+
+        ax3.plot(f3_training_losses)
+        ax3.set_title('f3 Training Loss')
+
+        plt.show()
